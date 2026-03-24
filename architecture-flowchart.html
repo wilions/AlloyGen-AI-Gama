@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlloyGen AI (Gama) — Architecture Flowcharts</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    color: #e2e8f0;
+    min-height: 100vh;
+    padding: 2rem;
+  }
+  h1 {
+    text-align: center;
+    font-size: 2rem;
+    background: linear-gradient(90deg, #818cf8, #a78bfa, #818cf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.5rem;
+  }
+  .subtitle {
+    text-align: center;
+    color: #94a3b8;
+    font-size: 0.9rem;
+    margin-bottom: 2.5rem;
+  }
+  .card {
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(148, 163, 184, 0.15);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+  }
+  .card h2 {
+    font-size: 1.3rem;
+    color: #a78bfa;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  }
+  .mermaid {
+    display: flex;
+    justify-content: center;
+    overflow-x: auto;
+  }
+  .mermaid svg { max-width: 100%; }
+  .tech-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+  }
+  .tech-table th, .tech-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  }
+  .tech-table th {
+    color: #a78bfa;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .tech-table td { color: #cbd5e1; }
+  .note {
+    background: rgba(167, 139, 250, 0.08);
+    border-left: 3px solid #a78bfa;
+    padding: 1rem 1.25rem;
+    margin-top: 1.5rem;
+    border-radius: 0 8px 8px 0;
+    font-size: 0.9rem;
+    color: #cbd5e1;
+    line-height: 1.6;
+  }
+  .note strong { color: #a78bfa; }
+</style>
+</head>
+<body>
+
+<h1>AlloyGen AI (Gama)</h1>
+<p class="subtitle">Architecture Flowcharts — Metallurgic &amp; Mechanical Expert</p>
+
+<!-- 1. System Overview -->
+<div class="card">
+  <h2>1. System Overview</h2>
+  <div class="mermaid">
+graph TB
+    subgraph Frontend["Frontend (React + Vite :5178)"]
+        UI["Chat UI — Glass Morphism"]
+        WS_Client["WebSocket Client — useWebSocket hook"]
+        FileUp["File Upload — useFileUpload hook"]
+        State["ChatContext — useReducer + localStorage"]
+        UI --> State
+        UI --> WS_Client
+        UI --> FileUp
+    end
+
+    subgraph Backend["Backend (FastAPI :8005)"]
+        WS_Server["WebSocket Endpoint /ws/session_id"]
+        Upload["POST /upload"]
+        Batch["POST /batch-predict"]
+        Download["GET /download/path"]
+        Sessions[("Session Store — in-memory dict")]
+        Pipeline["Pipeline Runner — pipeline.py"]
+        WS_Server --> Sessions
+        WS_Server --> Pipeline
+        Upload --> Sessions
+    end
+
+    subgraph Agents["Agent Layer"]
+        Req["Requirements Agent"]
+        Prep["DataPrep Agent"]
+        Search["OnlineSearch Agent"]
+        ModelS["ModelSearch Agent"]
+        Train["Training Agent"]
+        Pred["Prediction Agent"]
+        Inv["InverseDesign Agent"]
+    end
+
+    subgraph ML["ML Layer"]
+        Models["Model Registry — 20+ algorithms"]
+        MultiOut["Multi-Output Wrapper"]
+        Optuna["Optuna Optimizer"]
+        Weights["Target Weighting — inv-variance x precision"]
+    end
+
+    subgraph External["External Services"]
+        Gemini["Gemini API — Flash + Pro models"]
+        Disk[("File System — uploads/ models/")]
+    end
+
+    WS_Client <-->|"WebSocket JSON"| WS_Server
+    FileUp -->|"multipart/form-data"| Upload
+    UI -->|"CSV upload"| Batch
+    Pipeline --> Req & Prep & Search & ModelS & Train
+    WS_Server --> Pred & Inv
+    Req & Prep & Search --> Gemini
+    Pred --> Gemini
+    Inv --> Gemini
+    Train --> Models
+    Models --> MultiOut
+    Inv --> Optuna
+    Optuna --> Weights
+    Train --> Disk
+    Pred --> Disk
+    Inv --> Disk
+    Upload --> Disk
+  </div>
+</div>
+
+<!-- 2. Pipeline Flow -->
+<div class="card">
+  <h2>2. ML Pipeline Flow</h2>
+  <div class="mermaid">
+flowchart LR
+    A["1. Requirements Gathering"] --> B["2. Data Reorganization"]
+    B --> C["3. Online Data Search"]
+    C --> D["4. Model Search"]
+    D --> E["5. Training & Selection"]
+    E --> F["6. Prediction Ready"]
+    style A fill:#818cf8,color:#000,stroke:#818cf8
+    style B fill:#6366f1,color:#fff,stroke:#6366f1
+    style C fill:#7c3aed,color:#fff,stroke:#7c3aed
+    style D fill:#8b5cf6,color:#fff,stroke:#8b5cf6
+    style E fill:#a78bfa,color:#000,stroke:#a78bfa
+    style F fill:#3fb950,color:#000,stroke:#3fb950
+  </div>
+</div>
+
+<!-- 3. Post-Pipeline Capabilities -->
+<div class="card">
+  <h2>3. Post-Pipeline Capabilities</h2>
+  <div class="mermaid">
+flowchart TB
+    Ready["Prediction Ready"] --> FP["Forward Prediction"]
+    Ready --> ID["Inverse Design"]
+    Ready --> BP["Batch Prediction"]
+
+    FP --> Extract["LLM extracts features from natural language"]
+    Extract --> Predict["model.predict()"]
+    Predict --> Validate["Extrapolation & plausibility checks"]
+
+    ID --> Step1["Step 1: Extract constraints via LLM (JSON mode)"]
+    Step1 --> Step2["Step 2: User selects elements to optimize"]
+    Step2 --> Optimize["Optuna optimization — 200 trials"]
+    Optimize --> Rank["Rank top 5 candidates"]
+
+    BP --> Align["Align CSV columns to training features"]
+    Align --> BulkPred["Bulk model.predict()"]
+    BulkPred --> CSV["Output CSV with predicted columns"]
+
+    style Ready fill:#3fb950,color:#000,stroke:#3fb950
+    style FP fill:#818cf8,color:#000,stroke:#818cf8
+    style ID fill:#a78bfa,color:#000,stroke:#a78bfa
+    style BP fill:#6366f1,color:#fff,stroke:#6366f1
+  </div>
+</div>
+
+<!-- 4. Inverse Design Weighting -->
+<div class="card">
+  <h2>4. Inverse Design — Multi-Output Weighting</h2>
+  <div class="mermaid">
+flowchart TB
+    subgraph Weighting["Per-Target Weight Calculation"]
+        IV["Inverse Variance: w_var = 1 / var(target)"]
+        CP["Constraint Precision: w_prec = data_range / constraint_span"]
+        Combine["w = w_var x w_prec"]
+        Norm["Mean-normalise so avg weight = 1.0"]
+        IV --> Combine
+        CP --> Combine
+        Combine --> Norm
+    end
+
+    subgraph Penalty["Weighted Penalty Function"]
+        Violation["violation = predicted - bound"]
+        Scale["Normalise by data range"]
+        Weight["Multiply by target weight"]
+        Sum["total = Sum of weight x (violation / range)^2"]
+        Violation --> Scale --> Weight --> Sum
+    end
+
+    Norm --> Weight
+  </div>
+  <div class="note">
+    <strong>Weight examples:</strong><br>
+    • Tight constraint <code>hardness 49–51</code> (span=2) over data range 500 → high <code>w_prec</code><br>
+    • Low-variance target → high <code>w_var</code><br>
+    • One-sided constraint (only min or max) → neutral <code>w_prec = 1.0</code>
+  </div>
+</div>
+
+<!-- 5. Prediction Safety -->
+<div class="card">
+  <h2>5. Prediction Safety Checks</h2>
+  <div class="mermaid">
+flowchart LR
+    Input["User Input"] --> LLM["LLM feature extraction"]
+    LLM --> Check1{"Input features within training range?"}
+    Check1 -->|No| Warn1["Extrapolation warning"]
+    Check1 -->|Yes| Predict["model.predict()"]
+    Warn1 --> Predict
+    Predict --> Check2{"Prediction within plausible range?"}
+    Check2 -->|No| Warn2["Plausibility warning"]
+    Check2 -->|Yes| Output["Show result"]
+    Warn2 --> Output
+
+    style Warn1 fill:#f59e0b,color:#000,stroke:#f59e0b
+    style Warn2 fill:#f59e0b,color:#000,stroke:#f59e0b
+    style Output fill:#3fb950,color:#000,stroke:#3fb950
+  </div>
+</div>
+
+<!-- 6. Tech Stack -->
+<div class="card">
+  <h2>6. Tech Stack</h2>
+  <table class="tech-table">
+    <thead><tr><th>Layer</th><th>Technology</th></tr></thead>
+    <tbody>
+      <tr><td>Frontend</td><td>React 19, TypeScript, Tailwind CSS 4, Vite 8</td></tr>
+      <tr><td>Backend</td><td>FastAPI, Python 3.9+, WebSocket</td></tr>
+      <tr><td>ML</td><td>scikit-learn, XGBoost, LightGBM, CatBoost, Optuna</td></tr>
+      <tr><td>LLM</td><td>Gemini API (Flash for extraction, Pro for analysis)</td></tr>
+      <tr><td>State</td><td>In-memory sessions (backend), localStorage (frontend)</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#818cf8',
+      primaryTextColor: '#e2e8f0',
+      primaryBorderColor: '#6366f1',
+      lineColor: '#64748b',
+      secondaryColor: '#1e293b',
+      tertiaryColor: '#0f172a',
+      background: '#1e293b',
+      mainBkg: '#1e293b',
+      nodeBorder: '#6366f1',
+      clusterBkg: 'rgba(99, 102, 241, 0.08)',
+      clusterBorder: 'rgba(99, 102, 241, 0.3)',
+      edgeLabelBackground: '#1e293b',
+      fontFamily: 'Inter, sans-serif',
+    },
+    flowchart: { htmlLabels: true, curve: 'basis', padding: 20 },
+  });
+</script>
+</body>
+</html>

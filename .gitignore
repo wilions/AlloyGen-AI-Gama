@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+__pycache__/
+*.pyc
+venv/
+uploads/
+models/
+*.joblib
+.DS_Store
+catboost_info/
