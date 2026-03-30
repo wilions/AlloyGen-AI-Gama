@@ -1,31 +1,45 @@
 from __future__ import annotations
+
 import logging
-from openai import AsyncOpenAI
-from backend.config import GEMINI_API_KEY, GEMINI_BASE_URL, FLASH_MODEL, PRO_MODEL
+from typing import Optional
+
+from backend.llm.provider import get_llm_client, get_llm_config
 
 logger = logging.getLogger(__name__)
 
 
 class BaseAgent:
-    def __init__(self):
-        self.client = AsyncOpenAI(
-            api_key=GEMINI_API_KEY,
-            base_url=GEMINI_BASE_URL,
-        )
-        self.flash_model = FLASH_MODEL
-        self.pro_model = PRO_MODEL
+    def __init__(self, provider: Optional[str] = None):
+        config = get_llm_config(provider)
+        self.client = get_llm_client(provider)
+        self.flash_model = config.flash_model
+        self.pro_model = config.pro_model
+        self._supports_json_mode = config.supports_json_mode
 
     async def _chat(
         self,
-        messages: list[dict],
-        model: str | None = None,
+        messages: list,
+        model: Optional[str] = None,
         json_mode: bool = False,
     ) -> str:
         """Shared LLM call with logging and error handling."""
         model = model or self.flash_model
         kwargs: dict = {}
+
         if json_mode:
-            kwargs["response_format"] = {"type": "json_object"}
+            if self._supports_json_mode:
+                kwargs["response_format"] = {"type": "json_object"}
+            else:
+                # Fallback for providers that don't support response_format (e.g. Claude)
+                # Inject JSON instruction into the system message
+                if messages and messages[0].get("role") == "system":
+                    messages = list(messages)  # don't mutate original
+                    messages[0] = {
+                        **messages[0],
+                        "content": messages[0]["content"]
+                        + "\n\nIMPORTANT: You MUST respond with valid JSON only. No markdown, no explanation, just JSON.",
+                    }
+
         try:
             response = await self.client.chat.completions.create(
                 model=model, messages=messages, **kwargs

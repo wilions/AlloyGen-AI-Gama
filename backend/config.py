@@ -10,8 +10,8 @@ GEMINI_BASE_URL = os.environ.get(
     "GEMINI_BASE_URL",
     "https://generativelanguage.googleapis.com/v1beta/openai/",
 )
-FLASH_MODEL = os.environ.get("FLASH_MODEL", "gemini-3.1-flash-lite-preview")
-PRO_MODEL = os.environ.get("PRO_MODEL", "gemini-3.1-pro-preview")
+FLASH_MODEL = os.environ.get("FLASH_MODEL", "gemini-2.5-flash")
+PRO_MODEL = os.environ.get("PRO_MODEL", "gemini-2.5-flash")
 
 # --- Upload ---
 MAX_UPLOAD_BYTES = int(os.environ.get("MAX_UPLOAD_BYTES", 50 * 1024 * 1024))  # 50 MB

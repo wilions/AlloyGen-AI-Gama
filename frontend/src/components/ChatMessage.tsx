@@ -1,6 +1,9 @@
+import { lazy, Suspense } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Bot, User } from 'lucide-react';
 import type { ChatMessage as ChatMessageType } from '../types';
+
+const ChartRenderer = lazy(() => import('./charts/ChartRenderer'));
 
 interface Props {
   message: ChatMessageType;
@@ -48,6 +51,11 @@ export function ChatMessage({ message }: Props) {
           ) : (
             <div className="bot-markdown">
               <ReactMarkdown>{message.content}</ReactMarkdown>
+              {message.chartData && (
+                <Suspense fallback={<div className="text-gray-500 text-sm py-2">Loading chart...</div>}>
+                  <ChartRenderer chartData={message.chartData} />
+                </Suspense>
+              )}
             </div>
           )}
         </div>

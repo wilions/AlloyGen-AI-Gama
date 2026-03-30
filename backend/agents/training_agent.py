@@ -46,6 +46,15 @@ from backend.config import (
     TEST_SIZE, MLP_MAX_ITER, LOGISTIC_MAX_ITER, LASSO_MAX_ITER, ELASTICNET_MAX_ITER,
 )
 from backend.errors import DataValidationError, ModelTrainingError, TargetNotFoundError
+from backend.ml.uncertainty import GPRegressorWrapper, EnsembleUncertaintyEstimator
+from backend.ml.explainability import compute_shap_values
+
+# Conditionally import deep learning models
+try:
+    from backend.ml.deep_models import DeepMLPRegressor, CrabNetStyleRegressor, TabNetRegressorWrapper, HAS_TORCH, HAS_TABNET
+except ImportError:
+    HAS_TORCH = False
+    HAS_TABNET = False
 
 logger = logging.getLogger(__name__)
 
@@ -128,7 +137,20 @@ MODEL_REGISTRY = {
     # Neural network (needs scaling)
     "mlpregressor": lambda: Pipeline([("scaler", StandardScaler()), ("mlp", MLPRegressor(max_iter=MLP_MAX_ITER, random_state=42))]),
     "mlpclassifier": lambda: Pipeline([("scaler", StandardScaler()), ("mlp", MLPClassifier(max_iter=MLP_MAX_ITER, random_state=42))]),
+    # Uncertainty-aware models
+    "gpregressor": lambda: GPRegressorWrapper(),
+    "ensembleuncertainty": lambda: EnsembleUncertaintyEstimator(n_estimators=5),
 }
+
+# Add deep learning models if available
+if HAS_TORCH:
+    MODEL_REGISTRY["deepmlpregressor"] = lambda: DeepMLPRegressor(epochs=100, random_state=42)
+    MODEL_REGISTRY["crabnetstyleregressor"] = lambda: CrabNetStyleRegressor(epochs=100, random_state=42)
+if HAS_TABNET:
+    MODEL_REGISTRY["tabnetregressor"] = lambda: TabNetRegressorWrapper(max_epochs=50, random_state=42)
+
+# Reassign to close the dict properly
+_ = None
 
 _TREE_BASED_KEYS = {
     "randomforestregressor", "randomforestclassifier",
@@ -465,6 +487,32 @@ class TrainingAgent(BaseAgent):
                             "range": float(c.max() - c.min()),
                         }
 
+            # --- SHAP explainability ---
+            shap_data = None
+            shap_text = ""
+            if not is_classification and best["model"] is not None:
+                try:
+                    shap_data = compute_shap_values(
+                        best["model"], X_train, feature_names=features, max_samples=100
+                    )
+                    if shap_data:
+                        top_shap = list(shap_data["mean_abs_shap"].items())[:5]
+                        shap_lines = [f"  - {name}: {val:.4f}" for name, val in top_shap]
+                        shap_text = (
+                            f"\n\n**SHAP feature contributions (top 5 for {best['name']}):**\n"
+                            + "\n".join(shap_lines)
+                        )
+                except Exception as e:
+                    logger.debug("SHAP computation skipped: %s", e)
+
+            # --- Check for uncertainty support ---
+            has_uncertainty = hasattr(best["model"], "predict_with_uncertainty")
+
+            # --- Check for attention heatmap ---
+            attention_heatmap = None
+            if hasattr(best["model"], "attention_heatmap_") and best["model"].attention_heatmap_ is not None:
+                attention_heatmap = best["model"].attention_heatmap_.tolist()
+
             joblib.dump({
                 "model": best["model"],
                 "features": features,
@@ -478,6 +526,9 @@ class TrainingAgent(BaseAgent):
                 "all_results": [{"name": r["name"], "score": r["score"], "cv_score": r.get("cv_score")} for r in results_list],
                 "feature_stats": feature_stats,
                 "target_stats": target_stats,
+                "shap_data": shap_data,
+                "has_uncertainty": has_uncertainty,
+                "attention_heatmap": attention_heatmap,
             }, model_path)
 
             # Keep only the last 10 models
@@ -499,10 +550,13 @@ class TrainingAgent(BaseAgent):
                 f"The best model was {best['name']} with a {metric_name} of "
                 f"{best['score']:.4f}."
                 f"{importance_text}"
+                f"{shap_text}"
                 f"{warnings_text}\n\n"
+                f"{'This model supports uncertainty quantification — predictions will include confidence intervals. ' if has_uncertainty else ''}"
                 f"Write a short, engaging summary reporting these "
-                f"results. Include the feature importance insights if available. "
+                f"results. Include the feature importance and SHAP insights if available. "
                 f"Note the cross-validation scores for robustness assessment. "
+                f"Mention uncertainty support if available. "
                 f"Mention any data warnings if relevant. "
                 f"Keep it to 1-2 concise paragraphs. End by telling them the model "
                 f"is ready to predict new alloy compositions."

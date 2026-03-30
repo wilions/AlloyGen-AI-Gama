@@ -5,6 +5,7 @@ from backend.agents.model_search_agent import ModelSearchAgent
 from backend.agents.training_agent import TrainingAgent
 from backend.agents.prediction_agent import PredictionAgent
 from backend.agents.inverse_design_agent import InverseDesignAgent
+from backend.agents.literature_agent import LiteratureAgent
 
 __all__ = [
     "RequirementsAgent",
@@ -14,4 +15,5 @@ __all__ = [
     "TrainingAgent",
     "PredictionAgent",
     "InverseDesignAgent",
+    "LiteratureAgent",
 ]

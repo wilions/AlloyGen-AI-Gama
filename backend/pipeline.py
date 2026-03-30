@@ -6,6 +6,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Optional
 
+import joblib
 from fastapi import WebSocket
 
 logger = logging.getLogger(__name__)
@@ -54,15 +55,40 @@ class Session:
             self.pipeline_task.cancel()
 
 
-async def send_ws(websocket: WebSocket, msg_type: str, content: str, state: str) -> None:
+async def send_ws(
+    websocket: WebSocket,
+    msg_type: str,
+    content: str,
+    state: str,
+    chart: Optional[dict] = None,
+) -> None:
     try:
-        await websocket.send_json({"type": msg_type, "content": content, "state": state})
+        payload: dict = {"type": msg_type, "content": content, "state": state}
+        if chart:
+            payload["chart"] = chart
+        await websocket.send_json(payload)
     except Exception:
         logger.debug("Could not send WS message (client may have disconnected)")
 
 
 async def run_pipeline(session: Session, websocket: WebSocket, agents: dict) -> None:
     """Run the full ML pipeline with per-model progress and cancel support."""
+    try:
+        await _run_pipeline_inner(session, websocket, agents)
+    except Exception as e:
+        logger.exception("Pipeline failed")
+        session.reset_for_retry()
+        error_msg = (
+            f"The pipeline encountered an error: {e}\n\n"
+            "Your dataset is still loaded. Please try again — "
+            "specify which column(s) you'd like to predict."
+        )
+        session.history.append({"role": "assistant", "content": error_msg})
+        await send_ws(websocket, "error", error_msg, session.state)
+
+
+async def _run_pipeline_inner(session: Session, websocket: WebSocket, agents: dict) -> None:
+    """Inner pipeline logic."""
     original_data_path = session.data_path
     targets = session.targets
     task_type = session.task_types[0]
@@ -148,7 +174,40 @@ async def run_pipeline(session: Session, websocket: WebSocket, agents: dict) -> 
 
     session.model_path = model_path
     session.state = "prediction"
-    await send_ws(websocket, "message", train_res, "training")
+
+    # Build chart data from training results
+    training_chart = None
+    if model_path and os.path.exists(model_path):
+        try:
+            model_data = joblib.load(model_path)
+            all_results = model_data.get("all_results", [])
+            if all_results:
+                training_chart = {
+                    "type": "model_comparison",
+                    "data": [
+                        {"name": r["name"], "score": r["score"], "cv_score": r.get("cv_score")}
+                        for r in all_results if r.get("score") is not None
+                    ],
+                }
+                # Also add feature importance chart if available
+                fi = model_data.get("feature_importance")
+                if fi:
+                    training_chart = {
+                        "type": "feature_importance",
+                        "data": [{"name": k, "importance": v} for k, v in fi.items()],
+                    }
+                # Add SHAP data if available
+                shap_data = model_data.get("shap_data")
+                if shap_data and shap_data.get("mean_abs_shap"):
+                    training_chart = {
+                        "type": "shap_waterfall",
+                        "data": [{"name": k, "value": v} for k, v in shap_data["mean_abs_shap"].items()],
+                        "base_value": shap_data.get("base_value", 0),
+                    }
+        except Exception as e:
+            logger.debug("Could not build training chart data: %s", e)
+
+    await send_ws(websocket, "message", train_res, "training", chart=training_chart)
 
     capabilities = (
         "\n\nYou can now:\n"

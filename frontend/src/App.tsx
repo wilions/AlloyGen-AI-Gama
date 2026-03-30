@@ -1,11 +1,15 @@
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { ChatProvider, useChat } from './context/ChatContext';
 import { useWebSocket } from './hooks/useWebSocket';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { ChatPanel } from './components/ChatPanel';
 import { ToastContainer } from './components/ToastContainer';
+import LoginPage from './pages/LoginPage';
+import DashboardPage from './pages/DashboardPage';
 
-function AppContent() {
+function ChatPage() {
   const { state, dispatch } = useChat();
   const { send, sendCancel, sendReset, sendSelectModel } = useWebSocket(state.sessionId, dispatch);
 
@@ -31,10 +35,49 @@ function AppContent() {
   );
 }
 
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+function AppRoutes() {
+  const { user } = useAuth();
+
+  return (
+    <Routes>
+      <Route
+        path="/login"
+        element={user ? <Navigate to="/" replace /> : <LoginPage />}
+      />
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/chat/:sessionId?"
+        element={
+          <ProtectedRoute>
+            <ChatProvider>
+              <ChatPage />
+            </ChatProvider>
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
+  );
+}
+
 export default function App() {
   return (
-    <ChatProvider>
-      <AppContent />
-    </ChatProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </BrowserRouter>
   );
 }

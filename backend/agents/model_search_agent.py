@@ -59,26 +59,39 @@ class ModelSearchAgent:
                 "BayesianRidgeRegressor",
                 "MLPRegressor",
                 "DecisionTreeRegressor",
+                "GPRegressor",
+                "EnsembleUncertainty",
+                "DeepMLPRegressor",
+                "CrabNetStyleRegressor",
+                "TabNetRegressor",
             ]
             msg = (
-                "Model Search Agent: For your regression task, I have selected sixteen "
-                "complementary algorithms:\n\n"
+                "Model Search Agent: For your regression task, I have selected twenty-one "
+                "complementary algorithms including advanced models:\n\n"
+                "**Traditional ML:**\n"
                 "- **RandomForestRegressor** — ensemble, robust to outliers\n"
                 "- **LinearRegression** — interpretable baseline\n"
                 "- **XGBRegressor** — gradient boosting, often the top performer\n"
-                "- **GradientBoostingRegressor** — sklearn gradient boosting, strong on structured data\n"
-                "- **SVRRegressor** — support vector regression, good on small-to-medium datasets\n"
+                "- **GradientBoostingRegressor** — sklearn gradient boosting\n"
+                "- **SVRRegressor** — support vector regression\n"
                 "- **KNeighborsRegressor** — instance-based, captures local relationships\n"
-                "- **AdaBoostRegressor** — adaptive boosting, complements other ensembles\n"
-                "- **ExtraTreesRegressor** — extremely randomized trees, fast and diverse\n"
+                "- **AdaBoostRegressor** — adaptive boosting\n"
+                "- **ExtraTreesRegressor** — extremely randomized trees\n"
                 "- **LGBMRegressor** — LightGBM, fast gradient boosting\n"
                 "- **CatBoostRegressor** — handles categorical features natively\n"
-                "- **ElasticNetRegressor** — L1+L2 regularization, great for correlated alloy compositions\n"
-                "- **RidgeRegressor** — L2 regularization, robust to multicollinearity\n"
-                "- **LassoRegressor** — L1 regularization, automatic feature selection\n"
-                "- **BayesianRidgeRegressor** — Bayesian linear, provides uncertainty estimates\n"
-                "- **MLPRegressor** — neural network, captures complex interactions\n"
-                "- **DecisionTreeRegressor** — single tree, highly interpretable\n\n"
-                "I will now train and evaluate all sixteen."
+                "- **ElasticNetRegressor** — L1+L2 regularization\n"
+                "- **RidgeRegressor** — L2 regularization\n"
+                "- **LassoRegressor** — L1 regularization, feature selection\n"
+                "- **BayesianRidgeRegressor** — Bayesian linear\n"
+                "- **MLPRegressor** — neural network\n"
+                "- **DecisionTreeRegressor** — interpretable single tree\n\n"
+                "**Uncertainty-aware:**\n"
+                "- **GPRegressor** — Gaussian Process with Matern 5/2 kernel + confidence intervals\n"
+                "- **EnsembleUncertainty** — diverse ensemble with prediction uncertainty\n\n"
+                "**Deep learning:**\n"
+                "- **DeepMLPRegressor** — PyTorch MLP with BatchNorm, Dropout, residual connections\n"
+                "- **CrabNetStyleRegressor** — attention-based model with element interaction heatmaps\n"
+                "- **TabNetRegressor** — attention-based tabular model with native feature importance\n\n"
+                "I will now train and evaluate all available models."
             )
         return msg, models

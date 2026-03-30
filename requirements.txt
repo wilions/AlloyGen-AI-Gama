@@ -11,3 +11,23 @@ joblib
 pydantic-settings
 python-multipart
 optuna
+
+# Database + Auth (Phase 1)
+sqlalchemy[asyncio]
+aiosqlite
+alembic
+python-jose[cryptography]
+passlib[bcrypt]
+
+# Advanced ML (Phase 2)
+torch
+pytorch-tabnet
+shap
+
+# Optional (uncomment for full features)
+# gpytorch
+# botorch
+# bofire
+# baybe
+# matminer
+# pymatgen

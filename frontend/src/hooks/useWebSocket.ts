@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, type Dispatch } from 'react';
-import type { ChatAction, PipelineStep } from '../types';
+import type { ChatAction, ChartData, PipelineStep } from '../types';
 
 const GREETING_PREFIX = 'Hello! I am your Metallurgic';
 
@@ -46,9 +46,21 @@ export function useWebSocket(sessionId: string, dispatch: Dispatch<ChatAction>) 
               role: 'assistant',
               content: data.content,
               timestamp: Date.now(),
+              ...(data.chart ? { chartData: data.chart as ChartData } : {}),
             },
           });
         }
+      } else if (data.type === 'error') {
+        dispatch({
+          type: 'ADD_MESSAGE',
+          payload: {
+            id: crypto.randomUUID(),
+            role: 'assistant',
+            content: data.content,
+            timestamp: Date.now(),
+          },
+        });
+        dispatch({ type: 'PIPELINE_COMPLETE' });
       } else if (data.type === 'status') {
         if (data.content === 'pipeline_start') {
           dispatch({ type: 'PIPELINE_START' });

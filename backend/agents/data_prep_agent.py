@@ -6,6 +6,13 @@ from typing import Optional, Union
 import pandas as pd
 from backend.agents.base_agent import BaseAgent
 from backend.utils import find_target_column
+from backend.ml.featurizers import (
+    detect_element_columns,
+    detect_composition_format,
+    to_atomic_fraction,
+    compute_alloy_features,
+    featurize_alloy_dataset,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +92,16 @@ class DataPrepAgent(BaseAgent):
             if low_card:
                 df = pd.get_dummies(df, columns=low_card, drop_first=True)
 
+            # --- Alloy-specific featurization ---
+            featurization_info = ""
+            df, element_cols, new_features = featurize_alloy_dataset(df, matched_targets)
+            if new_features:
+                featurization_info = (
+                    f" Auto-detected {len(element_cols)} element composition columns "
+                    f"and generated {len(new_features)} alloy physics features: "
+                    f"{', '.join(new_features)}."
+                )
+
             # Sanitize column names for XGBoost compatibility
             df.columns = [re.sub(r"[\[\]<>]", "_", col) for col in df.columns]
 
@@ -97,8 +114,12 @@ class DataPrepAgent(BaseAgent):
                 f"You are a metallurgical data scientist. You have just cleaned a dataset "
                 f"for predicting {targets_display}. The original dataset had shape "
                 f"{original_shape}, and after handling missing values and one-hot encoding "
-                f"categorical variables, the cleaned dataset has shape {df.shape} and was saved. "
-                "Write a concise, engaging summary of these data preparation steps. Keep it to 1 paragraph."
+                f"categorical variables, the cleaned dataset has shape {df.shape} and was saved."
+                f"{featurization_info} "
+                "Write a concise, engaging summary of these data preparation steps. "
+                "If alloy physics features were generated, highlight what they indicate "
+                "(e.g. VEC predicts crystal structure, delta predicts solid solution stability). "
+                "Keep it to 1 paragraph."
             )
 
             report = await self._chat([{"role": "user", "content": prompt}])

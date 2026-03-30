@@ -9,6 +9,8 @@ import joblib
 import pandas as pd
 from backend.agents.base_agent import BaseAgent
 from backend.errors import PredictionError
+from backend.ml.uncertainty import add_uncertainty_to_prediction
+from backend.ml.explainability import explain_prediction
 
 logger = logging.getLogger(__name__)
 
@@ -180,10 +182,40 @@ class PredictionAgent(BaseAgent):
             pred_arr = np.array(prediction).flatten()
             plausibility_warnings = _check_prediction_plausibility(pred_arr, targets, data_path)
 
-            return _format_prediction(
+            # Uncertainty quantification
+            uncertainty_text = ""
+            target_stats = model_data.get("target_stats", {})
+            if hasattr(model, "predict_with_uncertainty"):
+                uq_results = add_uncertainty_to_prediction(model, df_input, target_stats.get(targets[0]) if len(targets) == 1 else None)
+                if uq_results and uq_results[0].std > 0:
+                    uq = uq_results[0]
+                    uncertainty_text = (
+                        f"\n**Confidence interval (95%):** [{uq.lower:.4f}, {uq.upper:.4f}] "
+                        f"(std: {uq.std:.4f}, confidence: {uq.confidence})"
+                    )
+
+            # SHAP explanation for this prediction
+            shap_text = ""
+            try:
+                if data_path and os.path.exists(data_path):
+                    bg_df = pd.read_csv(data_path)
+                    bg_features = _align_features(bg_df.copy(), features)
+                    shap_result = explain_prediction(model, df_input, bg_features, feature_names=features)
+                    if shap_result and shap_result.get("contributions"):
+                        top_contributions = list(shap_result["contributions"].items())[:5]
+                        shap_lines = []
+                        for name, val in top_contributions:
+                            direction = "+" if val > 0 else ""
+                            shap_lines.append(f"  - **{name}**: {direction}{val:.4f}")
+                        shap_text = "\n**Feature contributions (SHAP):**\n" + "\n".join(shap_lines)
+            except Exception as e:
+                logger.debug("SHAP prediction explanation skipped: %s", e)
+
+            result = _format_prediction(
                 prediction, targets, best_name, feature_dict,
                 extrap_warnings, plausibility_warnings,
             )
+            return result + uncertainty_text + shap_text
 
         except PredictionError as e:
             return str(e)
